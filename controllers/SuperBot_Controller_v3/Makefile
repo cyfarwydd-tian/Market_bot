@@ -73,7 +73,7 @@ INCLUDE = -I"$(RESOURCES_PATH)/libraries/youbot_control/include"
 LIBRARIES = -L"$(RESOURCES_PATH)/libraries/youbot_control" -lyoubot_control
 
 ### Do not modify: this includes Webots global Makefile.include
-space :=
-space +=
+null :=
+space := $(null) $(null)
 WEBOTS_HOME_PATH=$(subst $(space),\ ,$(strip $(subst \,/,$(WEBOTS_HOME))))
 include $(WEBOTS_HOME_PATH)/resources/Makefile.include
