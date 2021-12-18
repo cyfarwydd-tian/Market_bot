@@ -48,8 +48,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation 0.5753669398550434 0.7948159940615073 0.19292594461570128 5.484751448150693
-  position 0.0033658480354462617 2.0463208140366826 2.287145942807198
+  orientation 0.6658963830311815 0.7193875738950828 0.19764494830715118 5.500564496171242
+  position 0.08575155423273051 1.5824783694172768 3.309838409074095
   follow "SuperBot_v3"
 }
 Background {
@@ -3430,7 +3430,7 @@ DEF SEU_SuperBot_v1 Robot {
     }
     DEF WHEEL4 InteriorWheel {
       translation -0.133 0.163 -0.015
-      rotation 3.891837170190171e-16 0.9999999999999999 1.0563558033372946e-15 3.029999417195461
+      rotation 3.891837170190171e-16 0.9999999999999999 1.056355803337295e-15 3.029999417195461
       anchor -0.133 0.163 -0.015
       name "wheel4"
       sensorName "wheel4sensor"
@@ -3626,7 +3626,7 @@ DEF SEU_SuperBot_v2 Robot {
     }
     DEF WHEEL4 InteriorWheel {
       translation -0.133 0.163 -0.015
-      rotation 3.8918371702943773e-16 1 1.3343441726723258e-15 3.029999416236223
+      rotation 3.8918371702943793e-16 1 1.3343441726723258e-15 3.029999416236223
       anchor -0.133 0.163 -0.015
       name "wheel4"
       sensorName "wheel4sensor"
@@ -3668,9 +3668,7 @@ DEF SEU_SuperBot_v3 Robot {
           rotation 1 0 0 1.57
           children [
             Shape {
-              appearance PBRAppearance {
-                roughness 1
-                metalness 0
+              appearance BakelitePlastic {
               }
               geometry Cylinder {
                 height 0.03
@@ -4071,7 +4069,9 @@ DEF SEU_SuperBot_v3 Robot {
                   translation 0 -0.085 -0.158
                   children [
                     DEF CENTER_BOX Shape {
-                      appearance USE METAL_APPEARANCE
+                      appearance BrushedAluminium {
+                        colorOverride 0.333333 0.333333 0
+                      }
                       geometry Box {
                         size 0.044 0.512 0.0315
                       }

@@ -418,7 +418,7 @@ void Ori_Robot_State_Machine(int *main_state, int *grasp_state)
   }
 }*/
 
-int Current_Shelf = 4;
+int Current_Shelf = 0;
 double Shelf_Offset[6][3] =
     {
         {0.01, 1.42, 1.5 * PI},

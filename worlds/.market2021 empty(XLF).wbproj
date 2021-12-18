@@ -5,7 +5,7 @@ sceneTreePerspectives: 000000ff00000001000000020000007e000000fc01000000060100000
 maximizedDockId: -1
 centralWidgetVisible: 1
 orthographicViewHeight: 1
-textFiles: 0 "SuperBot_Controller_v3.c"
+textFiles: 0 "controllers/SuperBot_Controller_v3/SuperBot_Controller_v3.c"
 consoles: Console:All:All
 renderingDevicePerspectives: SuperBot_v3:camera_front;1;1;0;0
 renderingDevicePerspectives: SuperBot_v3:camera_top;0;1;0;0.694118
