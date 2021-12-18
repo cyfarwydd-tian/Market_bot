@@ -428,14 +428,14 @@ double Shelf_Offset[6][3] =
 };
 double Find_Empty_Pos[2][3] = 
 {
-  {1.2, 0, 0},
+  {1.35, 0, 0},
   {0, 0, 0},
 };
 
 void Back_Line()
 {
   double Target_Pos[3];
-  Target_Pos[0] = 1.2;
+  Target_Pos[0] = 1.35;
   Target_Pos[1] = gps_values[1];
   Target_Pos[2] = compass_angle;
   while(!Moveto_CertainPoint(Target_Pos, 0.01))
@@ -505,7 +505,7 @@ void Robot_State_Machine(int *main_state, int *grasp_state)
     }
     case End:
     {
-      Target_Pos[0] = 1.2;
+      Target_Pos[0] = 1.35;
       Target_Pos[1] = -5.5;
       Target_Pos[2] = compass_angle;
       while(!Moveto_CertainPoint(Target_Pos, 0.01))
@@ -516,7 +516,7 @@ void Robot_State_Machine(int *main_state, int *grasp_state)
     }
     case Get_Good:
     {
-      Target_Pos[0] = gps_values[0];
+      Target_Pos[0] = 1.35;
       Target_Pos[1] = Repository[Current_Repository_Index];
       Target_Pos[2] = PI;
       if(Moveto_CertainPoint(Target_Pos, 0.01))
