@@ -100,6 +100,9 @@ double fixed_posture_loadItem[4][3] =
   {0.00, 1.05, PI / 2}      //下
 };
 
+double Repository[2] = {0.25, -3.5};
+int Current_Repository_Index = 0;
+
 double width = 0.0;  //爪子0~0.1
 double height = 0.0; //爪子-0.05~0.45
 
@@ -411,6 +414,8 @@ void Ori_Robot_State_Machine(int *main_state, int *grasp_state)
   }
 }*/
 
+
+
 int Current_Shelf = 0;
 double Shelf_Offset[6][3] = 
 {
@@ -426,6 +431,18 @@ double Find_Empty_Pos[2][3] =
   {1.2, 0, 0},
   {0, 0, 0},
 };
+
+void Back_Line()
+{
+  double Target_Pos[3];
+  Target_Pos[0] = 1.2;
+  Target_Pos[1] = gps_values[1];
+  Target_Pos[2] = compass_angle;
+  while(!Moveto_CertainPoint(Target_Pos, 0.01))
+  {
+    step();
+  }
+}
 
 void Robot_State_Machine(int *main_state, int *grasp_state)
 {
@@ -456,9 +473,17 @@ void Robot_State_Machine(int *main_state, int *grasp_state)
     }
     case Recognize_Empty:
     {
-      if(0)
+      if(Find_Empty())
       {
         *main_state = Get_Good;
+        Back_Line();
+        Target_Pos[0] = gps_values[0];
+        Target_Pos[1] = gps_values[1];
+        Target_Pos[2] = PI;
+        while(!Moveto_CertainPoint(Target_Pos, 0.01))
+        {
+          step();
+        }
       }
       else
       {
@@ -468,13 +493,7 @@ void Robot_State_Machine(int *main_state, int *grasp_state)
     }
     case Next_Shelf:
     {
-      Target_Pos[0] = 1.2;
-      Target_Pos[1] = gps_values[1];
-      Target_Pos[2] = compass_angle;
-      while(!Moveto_CertainPoint(Target_Pos, 0.01))
-      {
-        step();
-      }
+      Back_Line();
       Current_Shelf += 1;
       if(Current_Shelf > 5)
       {
@@ -494,6 +513,18 @@ void Robot_State_Machine(int *main_state, int *grasp_state)
         step();
       }
       exit(0);
+    }
+    case Get_Good:
+    {
+      Target_Pos[0] = gps_values[0];
+      Target_Pos[1] = Repository[Current_Repository_Index];
+      Target_Pos[2] = PI;
+      if(Moveto_CertainPoint(Target_Pos, 0.01))
+      {
+        Current_Repository_Index = Current_Repository_Index ? 0 : 1;
+      }
+
+      break;
     }
   }
 }
@@ -727,10 +758,10 @@ bool Find_Empty()
     // for (int j = 0; j < objects[i].number_of_colors; ++j)
     //   printf("颜色 %d/%d: %lf %lf %lf\n", j + 1, objects[i].number_of_colors, objects[i].colors[3 * j],
     //           objects[i].colors[3 * j + 1], objects[i].colors[3 * j + 2]);
-
-    int Shelfx = max(0,floor((objects[i].position[0] + 0.75) * 4)); //左右 平均间隔0.24（架子宽度0.25）右移后对应一个系数 四舍五入
+    int Shelfx = floor((objects[i].position[0] + 0.75) * 4); //左右 平均间隔0.24（架子宽度0.25）右移后对应一个系数 四舍五入
     int Shelfy = (objects[i].position[1] < 0.22) ? 0 : 1;             //上下层 -0.20  为上下分界
-
+    if(Shelfx < 0 || Shelfx > 5)
+      continue;
     GoodsonShelf[CurrentShelf][Shelfy * 6 + Shelfx] = name2index(objects[i].model);
     printf("物体 %s 对应编号 %d 写入[%d] 写入编号为%d\n", objects[i].model, name2index(objects[i].model),Shelfy * 6 + Shelfx, GoodsonShelf[CurrentShelf][Shelfy * 6 + Shelfx]);
   }
@@ -739,16 +770,15 @@ bool Find_Empty()
   int Empty_Flag = 0;
 
   for (int j = 0; j < 12; j++)
-    printf("GoodsonShelf[%d][%d] = %d\n", CurrentShelf, j, GoodsonShelf[CurrentShelf][j]);
-  for (int j = 0; j < 12; j++)
+    if (GoodsonShelf[CurrentShelf][j] != -1)
+      TargetGood = GoodsonShelf[CurrentShelf][j];
+
+    for (int j = 0; j < 12; j++)
   {
-    // if (strlen(GoodsonShelf[CurrentShelf][j]) == 0) // 这种判断可能会crash
-    //   Empty_Flag = 1;
     if (GoodsonShelf[CurrentShelf][j] == -1)
     {
       Empty_Flag = 1;
       TargetIndex = j;
-      TargetGood = objects[0].model;
       //如果整排都没有可能会出错 下次一定
       printf("GoodsonShelf[%d][%d] need %s\n", CurrentShelf, j, index2name(TargetGood));
       break;
