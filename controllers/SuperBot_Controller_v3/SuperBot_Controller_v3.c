@@ -51,7 +51,8 @@ enum RobotState
   Reach_Shelf_Second_Point,
   Recognize_Empty,
   Get_Good,
-  Next_Shelf
+  Next_Shelf,
+  End
 };
 
 int GoodsonShelf[6][12];
@@ -428,7 +429,6 @@ double Find_Empty_Pos[2][3] =
 
 void Robot_State_Machine(int *main_state, int *grasp_state)
 {
-  Current_Shelf = 3;
   double Target_Pos[3];
   switch (*main_state)
   {
@@ -456,7 +456,7 @@ void Robot_State_Machine(int *main_state, int *grasp_state)
     }
     case Recognize_Empty:
     {
-      if(Find_Empty())
+      if(0)
       {
         *main_state = Get_Good;
       }
@@ -464,6 +464,36 @@ void Robot_State_Machine(int *main_state, int *grasp_state)
       {
         *main_state = Next_Shelf;
       }
+      break;
+    }
+    case Next_Shelf:
+    {
+      Target_Pos[0] = 1.2;
+      Target_Pos[1] = gps_values[1];
+      Target_Pos[2] = compass_angle;
+      while(!Moveto_CertainPoint(Target_Pos, 0.01))
+      {
+        step();
+      }
+      Current_Shelf += 1;
+      if(Current_Shelf > 5)
+      {
+        *main_state = End;
+      }
+      else
+        *main_state = Reach_Shelf_Start_Point;
+      break;
+    }
+    case End:
+    {
+      Target_Pos[0] = 1.2;
+      Target_Pos[1] = -5.5;
+      Target_Pos[2] = compass_angle;
+      while(!Moveto_CertainPoint(Target_Pos, 0.01))
+      {
+        step();
+      }
+      exit(0);
     }
   }
 }
