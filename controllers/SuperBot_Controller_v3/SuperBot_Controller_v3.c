@@ -141,7 +141,7 @@ int main(int argc, char **argv)
   while (true)
   {
     step();
-    Robot_State_Machine(&main_state, &grasp_state);
+    // Robot_State_Machine(&main_state, &grasp_state);
     // printf("State:%d\n", main_state);
     keyboard_control(wb_keyboard_get_key(), &main_state);
   }
