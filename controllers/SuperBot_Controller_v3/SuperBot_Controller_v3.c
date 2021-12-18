@@ -44,6 +44,17 @@ double initial_posture[3];    //起点位姿,0为x,1为z,2为角度，每段轨�
 double tmp_target_posture[3]; //临时目标位姿，需要不断计算
 double fin_target_posture[3]; //最终目标位姿
 
+//机器人状态枚举
+enum RobotState
+{
+  Reach_Shelf_Start_Point,
+  Reach_Shelf_Second_Point,
+  Recognize_Empty,
+  Get_Good,
+  Next_Shelf
+};
+
+int GoodsonShelf[6][12];
 
 int TargetIndex = 0;          //当前关注的货架空位
 int TargetGood;               //当前关注的货物种类
@@ -88,20 +99,6 @@ double fixed_posture_loadItem[4][3] =
   {0.00, 1.05, PI / 2}      //下
 };
 
-
-//机器人状态枚举
-enum RobotState
-{
-  Init_Pose,
-  Recognize_Empty,
-  Arround_Moving,
-  Grab_Item,
-  Back_Moving,
-  TurnBack_To_LoadItem,
-  Item_Loading,
-  RunTo_NextShelf
-};
-
 double width = 0.0;  //爪子0~0.1
 double height = 0.0; //爪子-0.05~0.45
 
@@ -122,7 +119,7 @@ bool targetpos_reached(double target_posture[], double pos_threshold);
 int name2index(char *name);
 char *index2name(int index);
 
-bool Find_Empty(WbDeviceTag camera);
+bool Find_Empty();
 bool Find_Goods(WbDeviceTag camera,char *good_name,int *item_grasped_id);
 bool Aim_and_Grasp(int *grasp_state, WbDeviceTag camera, int objectID);
 bool Moveto_CertainPoint(double fin_posture[], double reach_precision);
@@ -136,12 +133,12 @@ int main(int argc, char **argv)
   init_all();
 
   printf("Ready to go!\n");
-  int main_state = 0;  //机器人运行状态
+  int main_state = Reach_Shelf_Start_Point;  //机器人运行状态
   int grasp_state = 0; //手爪状态
   while (true)
   {
     step();
-    // Robot_State_Machine(&main_state, &grasp_state);
+    Robot_State_Machine(&main_state, &grasp_state);
     // printf("State:%d\n", main_state);
     keyboard_control(wb_keyboard_get_key(), &main_state);
   }
@@ -199,11 +196,13 @@ void init_all()
   wb_motor_enable_force_feedback(gripper_motors[1], 1);
   wb_motor_enable_force_feedback(gripper_motors[2], 1);
 
-
+  for (int i = 0; i < 6; i++)
+    for (int j = 0; j < 12;j++)
+      GoodsonShelf[i][j] = -1;//不知道为啥写在定义的时候不成功
 }
 
-//机器人状态机
-void Robot_State_Machine(int *main_state, int *grasp_state)
+/*
+void Ori_Robot_State_Machine(int *main_state, int *grasp_state)
 {
   switch (*main_state)
   {
@@ -408,6 +407,64 @@ void Robot_State_Machine(int *main_state, int *grasp_state)
     // printf("Error form State Machine : %d\n",*main_state);
     break;
   }
+  }
+}*/
+
+int Current_Shelf = 0;
+double Shelf_Offset[6][3] = 
+{
+  {0.01, 1.5, 1.5 * PI},
+  {0.01, -0.9, 0.5 * PI},
+  {0.01, -0.49, 1.5 * PI},
+  {0.01, -2.62, 0.5 * PI},
+  {0.01, -2.21, 1.5 * PI},
+  {0.01, -4.34, 0.5 * PI},
+};
+double Find_Empty_Pos[2][3] = 
+{
+  {1.2, 0, 0},
+  {0, 0, 0},
+};
+
+void Robot_State_Machine(int *main_state, int *grasp_state)
+{
+  Current_Shelf = 3;
+  double Target_Pos[3];
+  switch (*main_state)
+  {
+    case Reach_Shelf_Start_Point:
+    {
+      Target_Pos[0] = Find_Empty_Pos[0][0] + Shelf_Offset[Current_Shelf][0];
+      Target_Pos[1] = Find_Empty_Pos[0][1] + Shelf_Offset[Current_Shelf][1];
+      Target_Pos[2] = Find_Empty_Pos[0][2] + Shelf_Offset[Current_Shelf][2];
+      if(Moveto_CertainPoint(Target_Pos, 0.01))
+      {
+        *main_state = Reach_Shelf_Second_Point;
+      }
+      break;
+    }
+    case Reach_Shelf_Second_Point:
+    {
+      Target_Pos[0] = Find_Empty_Pos[1][0] + Shelf_Offset[Current_Shelf][0];
+      Target_Pos[1] = Find_Empty_Pos[1][1] + Shelf_Offset[Current_Shelf][1];
+      Target_Pos[2] = Find_Empty_Pos[1][2] + Shelf_Offset[Current_Shelf][2];
+      if(Moveto_CertainPoint(Target_Pos, 0.01))
+      {
+        *main_state = Recognize_Empty;
+      };
+      break;
+    }
+    case Recognize_Empty:
+    {
+      if(Find_Empty())
+      {
+        *main_state = Get_Good;
+      }
+      else
+      {
+        *main_state = Next_Shelf;
+      }
+    }
   }
 }
 
@@ -618,15 +675,12 @@ bool Aim_and_Grasp(int *grasp_state, WbDeviceTag camera, int objectID)
 }
 
 //寻找空货架 给四个定点GPS 摄像头看四面墙 返回货架位置和一个商品种类
-bool Find_Empty(WbDeviceTag camera)
+bool Find_Empty()
 {
-  int number_of_objects = wb_camera_recognition_get_number_of_objects(camera);
+  int CurrentShelf = Current_Shelf;
+  int number_of_objects = wb_camera_recognition_get_number_of_objects(camera[1]);
   // printf("识别到 %d 个物体.\n", number_of_objects);
-  const WbCameraRecognitionObject *objects = wb_camera_recognition_get_objects(camera);
-  int GoodsonShelf[4][16];      //货架上的物品ID号 先下后上 先左后右
-  for (int i = 0; i < 4;i++)
-    for (int j = 0; j < 16;j++)
-      GoodsonShelf[i][j] = -1;//不知道为啥写在定义的时候不成功
+  const WbCameraRecognitionObject *objects = wb_camera_recognition_get_objects(camera[1]);
   for (int i = 0; i < number_of_objects; ++i)
   {
     // printf("物体 %d 的类型: %s ", i, objects[i].model);
@@ -644,19 +698,19 @@ bool Find_Empty(WbDeviceTag camera)
     //   printf("颜色 %d/%d: %lf %lf %lf\n", j + 1, objects[i].number_of_colors, objects[i].colors[3 * j],
     //           objects[i].colors[3 * j + 1], objects[i].colors[3 * j + 2]);
 
-    int Shelfx = max(0,floor((objects[i].position[0] + 0.84) * 4.17 + 0.5)); //左右 平均间隔0.24（架子宽度0.25）右移后对应一个系数 四舍五入
-    int Shelfy = (objects[i].position[1] < -0.2) ? 0 : 1;             //上下层 -0.20  为上下分界
+    int Shelfx = max(0,floor((objects[i].position[0] + 0.75) * 4)); //左右 平均间隔0.24（架子宽度0.25）右移后对应一个系数 四舍五入
+    int Shelfy = (objects[i].position[1] < 0.22) ? 0 : 1;             //上下层 -0.20  为上下分界
 
-    GoodsonShelf[CurrentShelf][Shelfy * 8 + Shelfx] = name2index(objects[i].model);
-    printf("物体 %s 对应编号 %d 写入[%d] 写入编号为%d\n", objects[i].model, name2index(objects[i].model),Shelfy * 8 + Shelfx, GoodsonShelf[CurrentShelf][Shelfy * 8 + Shelfx]);
+    GoodsonShelf[CurrentShelf][Shelfy * 6 + Shelfx] = name2index(objects[i].model);
+    printf("物体 %s 对应编号 %d 写入[%d] 写入编号为%d\n", objects[i].model, name2index(objects[i].model),Shelfy * 6 + Shelfx, GoodsonShelf[CurrentShelf][Shelfy * 6 + Shelfx]);
   }
 
   //检测完毕 判断下一个要取的货物类型
   int Empty_Flag = 0;
 
-  for (int j = 0; j < 16; j++)
+  for (int j = 0; j < 12; j++)
     printf("GoodsonShelf[%d][%d] = %d\n", CurrentShelf, j, GoodsonShelf[CurrentShelf][j]);
-  for (int j = 0; j < 16; j++)
+  for (int j = 0; j < 12; j++)
   {
     // if (strlen(GoodsonShelf[CurrentShelf][j]) == 0) // 这种判断可能会crash
     //   Empty_Flag = 1;
@@ -664,31 +718,7 @@ bool Find_Empty(WbDeviceTag camera)
     {
       Empty_Flag = 1;
       TargetIndex = j;
-      //寻找邻近货物 判断应该取的货物类型
-      //直接覆盖 假装已经放上去了
-      int TargetFloor = 0;
-      if (j > 7)
-        TargetFloor += 8; //层数无关
-      if (j % 8 < 4)
-        for (int k = 0; k < 8; k++)//从左往右
-        {
-          if (GoodsonShelf[CurrentShelf][TargetFloor + k] != -1)
-          {
-            // strcpy(TargetGood, GoodsonShelf[CurrentShelf][TargetFloor + k]);
-            TargetGood = GoodsonShelf[CurrentShelf][TargetFloor + k];
-            break;
-          }
-        }
-      else
-        for (int k = 7; k >= 0; k--)//从右往左
-        {
-          if (GoodsonShelf[CurrentShelf][TargetFloor + k] != -1)
-          {
-            // strcpy(TargetGood, GoodsonShelf[CurrentShelf][TargetFloor + k]);
-            TargetGood = GoodsonShelf[CurrentShelf][TargetFloor + k];
-            break;
-          }
-        }
+      TargetGood = objects[0].model;
       //如果整排都没有可能会出错 下次一定
       printf("GoodsonShelf[%d][%d] need %s\n", CurrentShelf, j, index2name(TargetGood));
       break;
