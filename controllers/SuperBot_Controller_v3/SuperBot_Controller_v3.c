@@ -425,7 +425,7 @@ double Shelf_Offset[6][3] =
         {0.01, -0.92, 0.5 * PI},
         {0.01, -0.43, 1.5 * PI},
         {0.01, -2.77, 0.5 * PI},
-        {0.01, -2.33, 1.5 * PI},
+        {0.01, -2.30, 1.5 * PI},
         {0.01, -4.67, 0.5 * PI},
 };
 double Find_Empty_Pos[2][3] =
@@ -557,9 +557,10 @@ void Robot_State_Machine(int *main_state, int *grasp_state)
     {
       step();
     }
-    if(Current_Shelf % 2 == 0)
+    if (Current_Shelf % 2 == 0)
       Target_Pos[0] = TargetIndex % 6 * 0.25 - 0.64;
-    else Target_Pos[0] = (5 - TargetIndex % 6) * 0.25 - 0.64;
+    else
+      Target_Pos[0] = (5 - TargetIndex % 6) * 0.25 - 0.64;
     Pos_Good[0] = Target_Pos[0];
     Pos_Good[1] = Target_Pos[1];
     Pos_Good[2] = Target_Pos[2];
@@ -804,6 +805,10 @@ bool Find_Empty()
   int number_of_objects = wb_camera_recognition_get_number_of_objects(camera[1]);
   // printf("识别到 %d 个物体.\n", number_of_objects);
   const WbCameraRecognitionObject *objects = wb_camera_recognition_get_objects(camera[1]);
+  for (int i = 0; i < 12; ++i)
+  {
+    GoodsonShelf[CurrentShelf][i] = -1;
+  }
   for (int i = 0; i < number_of_objects; ++i)
   {
     // printf("物体 %d 的类型: %s ", i, objects[i].model);
@@ -833,7 +838,10 @@ bool Find_Empty()
 
   for (int j = 0; j < 12; j++)
     if (GoodsonShelf[CurrentShelf][j] != -1)
+    {
       TargetGood = GoodsonShelf[CurrentShelf][j];
+      break;
+    }
 
   for (int j = 0; j < 12; j++)
   {
