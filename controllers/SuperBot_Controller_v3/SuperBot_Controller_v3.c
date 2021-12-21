@@ -84,7 +84,7 @@ double Shelf_Offset[6][3] =
         {0.01, -0.92, 0.5 * PI},
         {0.01, -0.43, 1.5 * PI},
         {0.01, -2.77, 0.5 * PI},
-        {0.01, -2.30, 1.5 * PI},
+        {0.01, -2.27, 1.5 * PI},
         {0.01, -4.67, 0.5 * PI},
 };
 double Find_Empty_Pos[2][3] =
@@ -264,7 +264,7 @@ void Robot_State_Machine(int *main_state, int *grasp_state)
   case End:
   {
     Target_Pos[0] = 1.35;
-    Target_Pos[1] = -5.5;
+    Target_Pos[1] = -5.3;
     Target_Pos[2] = compass_angle;
     while (!Moveto_CertainPoint(Target_Pos, 0.01))
     {
